@@ -90,6 +90,19 @@ func (m GreetingModel) View() string {
 
 	logo := titleStyle.Render("󱃾  kubes")
 
+	keyStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color(m.styles.Theme.Primary)).
+		Bold(true)
+
+	accentStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color(m.styles.Theme.Secondary))
+
+	divider := dimStyle.Render("  " + strings.Repeat("─", 38))
+
+	step := func(n, k, desc string) string {
+		return "  " + accentStyle.Render(n) + "  " + keyStyle.Render(k) + "  " + dimStyle.Render(desc)
+	}
+
 	rows := []string{
 		logo,
 		"",
@@ -100,6 +113,15 @@ func (m GreetingModel) View() string {
 	}
 	rows = append(rows,
 		labelStyle.Render("  Namespace ")+valueStyle.Render("󰋘 "+m.namespace),
+		"",
+		divider,
+		"",
+		dimStyle.Render("  Quick Start"),
+		"",
+		step("1", "↑ ↓", "navigate contexts"),
+		step("2", "↵ ", "browse namespaces"),
+		step("3", "↵ ", "set active namespace"),
+		"  "+dimStyle.Render("or  ")+keyStyle.Render("s")+dimStyle.Render("  switch context directly"),
 		"",
 		dimStyle.Render("  Press any key to continue…"),
 	)

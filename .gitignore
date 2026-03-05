@@ -9,3 +9,5 @@ vendor/
 
 # macOS
 .DS_Store
+releaser.md
+PLAN.md

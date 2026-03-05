@@ -43,6 +43,8 @@ type nsDelegate struct {
 	currentNS string
 }
 
+func (d nsDelegate) Height() int                             { return 1 }
+func (d nsDelegate) Spacing() int                            { return 1 }
 func (d nsDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 
 func (d nsDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
@@ -51,41 +53,70 @@ func (d nsDelegate) Render(w io.Writer, m list.Model, index int, listItem list.I
 		return
 	}
 
+	width := m.Width()
+	if width <= 0 {
+		width = 60
+	}
+
 	isSelected := index == m.Index()
 
-	// ── Text colors & Box layout ───────────────────────────────────────────────
-	var boxStyle lipgloss.Style
-
+	// ── Selection marker ──────────────────────────────────────────────────────
+	var marker string
 	if isSelected {
-		boxStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color(d.styles.Theme.Primary)).
-			Padding(0, 1).
-			Width(60) // clean fixed width
+		marker = lipgloss.NewStyle().
+			Foreground(lipgloss.Color(d.styles.Theme.Primary)).
+			Bold(true).
+			Render("▌")
 	} else {
-		boxStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color(d.styles.Theme.Surface)).
-			Padding(0, 1).
-			Width(60) // clean fixed width
+		marker = lipgloss.NewStyle().
+			Foreground(lipgloss.Color(d.styles.Theme.Subtle)).
+			Render(" ")
 	}
 
+	// ── Icon ──────────────────────────────────────────────────────────────────
+	var icon string
+	if isSelected {
+		icon = lipgloss.NewStyle().
+			Foreground(lipgloss.Color(d.styles.Theme.Primary)).
+			Bold(true).
+			Render(" 󰋘 ")
+	} else {
+		icon = lipgloss.NewStyle().
+			Foreground(lipgloss.Color(d.styles.Theme.Subtle)).
+			Render(" 󰋘 ")
+	}
+
+	// ── Name ──────────────────────────────────────────────────────────────────
+	var name string
+	if isSelected {
+		name = lipgloss.NewStyle().
+			Foreground(lipgloss.Color(d.styles.Theme.Primary)).
+			Bold(true).
+			Render(item.name)
+	} else {
+		name = lipgloss.NewStyle().
+			Foreground(lipgloss.Color(d.styles.Theme.Text)).
+			Render(item.name)
+	}
+
+	// ── Active badge (right-aligned) ──────────────────────────────────────────
 	badge := ""
 	if item.isActive {
-		badge = " " + d.styles.ActiveBadge.Render("active")
+		badge = d.styles.ActiveBadge.Render("active")
 	}
 
-	if isSelected {
-		ns := d.styles.ActiveItem.Render("󰋘 " + item.name)
-		fmt.Fprint(w, boxStyle.Render(ns+badge))
-	} else {
-		ns := d.styles.NormalItem.Render("  " + item.name)
-		fmt.Fprint(w, boxStyle.Render(ns+badge))
+	left := marker + icon + name
+	if badge == "" {
+		fmt.Fprint(w, left)
+		return
 	}
+
+	gap := width - lipgloss.Width(left) - lipgloss.Width(badge)
+	if gap < 1 {
+		gap = 1
+	}
+	fmt.Fprint(w, left+strings.Repeat(" ", gap)+badge)
 }
-
-func (d nsDelegate) Height() int  { return 3 }
-func (d nsDelegate) Spacing() int { return 0 }
 
 // ── Model ────────────────────────────────────────────────────────────────────
 
@@ -203,7 +234,8 @@ func (m NamespacesModel) Update(msg tea.Msg) (NamespacesModel, tea.Cmd) {
 		if m.loadState != nsLoaded {
 			return m, nil
 		}
-		if msg.String() == "enter" {
+		switch msg.String() {
+		case "enter":
 			selected := m.list.SelectedItem()
 			if selected == nil {
 				return m, nil
@@ -214,6 +246,17 @@ func (m NamespacesModel) Update(msg tea.Msg) (NamespacesModel, tea.Cmd) {
 					ctx:       m.contextObj,
 					namespace: item.name,
 				}
+			}
+		case "p":
+			selected := m.list.SelectedItem()
+			if selected == nil {
+				return m, nil
+			}
+			item := selected.(nsItem)
+			ctx := m.contextObj
+			ns := item.name
+			return m, func() tea.Msg {
+				return podViewMsg{ctx: ctx, namespace: ns}
 			}
 		}
 	}

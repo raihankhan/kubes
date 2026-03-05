@@ -210,6 +210,11 @@ func (m *ImportModel) applyStyles(styles Styles) {
 	m.aliasIn.TextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color(styles.Theme.Text))
 }
 
+func userHome() string {
+	home, _ := os.UserHomeDir()
+	return home
+}
+
 // expandHome replaces leading ~ with the user's home directory.
 func expandHome(path string) string {
 	if strings.HasPrefix(path, "~/") {
